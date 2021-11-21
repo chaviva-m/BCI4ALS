@@ -70,9 +70,9 @@ EEG.data(2,:) = EEG.data(2,:) -  mean(EEG.data(5:2:11,:), 1);
 % Save the data into .mat variables on the computer
 EEG_data = EEG.data;            % Pre-processed EEG data
 EEG_event = EEG.event;          % Saved markers for sorting the data
-save(strcat(recordingFolder,'\','cleaned_sub.mat'),'EEG_data');
-save(strcat(recordingFolder,'\','EEG_events.mat'),'EEG_event');
-save(strcat(recordingFolder,'\','EEG_chans.mat'),'EEG_chans');
+save(strcat(recordingFolder,'/','cleaned_sub.mat'),'EEG_data');
+save(strcat(recordingFolder,'/','EEG_events.mat'),'EEG_event');
+save(strcat(recordingFolder,'/','EEG_chans.mat'),'EEG_chans');
 
 % EEG = pop_runica(EEG)
 % EEG3 = pop_topoplot(EEG2, EEG_chans)
