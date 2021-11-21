@@ -32,7 +32,7 @@ motorDataChan = {};
 welch = {};
 idxTarget = {};
 freq.low = 0.5;                             % INSERT the lowest freq 
-freq.high = 60;                             % INSERT the highst freq 
+freq.high = 40;                             % INSERT the highst freq 
 freq.Jump = 1;                              % SET the freq resolution
 f = freq.low:freq.Jump:freq.high;           % frequency vector
 window = 40;                                % INSERT sample size window for pwelch
@@ -86,7 +86,7 @@ for trial=1:size(leftClass,1)
     overallLeft = [overallLeft squeeze(leftClass(trial,:,:))];
     overallRight = [overallRight squeeze(rightClass(trial,:,:))];
 end
-vizTrial = 11;       % cherry-picked!
+vizTrial = 2;       % cherry-picked!
 figure;
 subplot(1,2,1)      % show a single trial before CSP seperation
 scatter3(squeeze(leftClass(vizTrial,1,:)),squeeze(leftClass(vizTrial,2,:)),squeeze(leftClass(vizTrial,3,:)),'b'); hold on
@@ -125,9 +125,9 @@ bands{5} = [12.5,30];
 % times of frequency band features
 times{1} = (1*Fs : 3*Fs);
 times{2} = (3*Fs : 4.5*Fs);
-times{3} = (4.25*Fs : size(MIData,3));
+times{3} = (round(4.25)*Fs : size(MIData,3));
 times{4} = (2*Fs : 2.75*Fs);
-times{5} = (2.5*Fs : 4*Fs);
+times{5} = (2*Fs : 4*Fs);
 
 numSpectralFeatures = length(bands);                        % how many features exist overall 
 
