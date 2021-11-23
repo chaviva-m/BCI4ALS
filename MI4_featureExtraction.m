@@ -17,6 +17,8 @@ load(strcat(recordingFolder,'EEG_chans.mat'));                  % load the openB
 load(strcat(recordingFolder,'MIData.mat'));                     % load the EEG data
 targetLabels = cell2mat(struct2cell(load(strcat(recordingFolder,'\trainingVec'))));
 
+labels = {'Left', 'Right', 'Idle'};
+
 Features2Select = 10;                                           % number of featuers for feature selection
 num4test = 5;                                                   % define how many test trials after feature extraction
 numClasses = length(unique(targetLabels));                      % set number of possible targets (classes)
@@ -32,7 +34,7 @@ motorDataChan = {};
 welch = {};
 idxTarget = {};
 freq.low = 0.5;                             % INSERT the lowest freq 
-freq.high = 60;                             % INSERT the highst freq 
+freq.high = 40;                             % INSERT the highst freq 
 freq.Jump = 1;                              % SET the freq resolution
 f = freq.low:freq.Jump:freq.high;           % frequency vector
 window = 40;                                % INSERT sample size window for pwelch
@@ -50,6 +52,7 @@ for chan = 1:numChans
     welch{chan} = pwelch(motorDataChan{chan},window, noverlap, f, Fs);  % calculate the pwelch for each electrode
     figure(f1);
     subplot(numChans,1,chan)
+%     figure;
     for class = 1:numClasses
         idxTarget{class} = find(targetLabels == class);                 % find the target index
         plot(f, log10(mean(welch{chan}(:,idxTarget{class}), 2)));       % ploting the mean power spectrum in dB by each channel & class
@@ -64,10 +67,10 @@ for chan = 1:numChans
         totalSpect(chan,class,:,:) = squeeze(mean(multiPSD,1));
         clear multiPSD psd
     end
+    legend(labels)
 end
 % manually plot (surf) mean spectrogram for channels C4 + C3:
 mySpectrogram(t,spectFreq,totalSpect,numClasses,vizChans,EEG_chans)
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% Add your own data visualization here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,17 +79,31 @@ mySpectrogram(t,spectFreq,totalSpect,numClasses,vizChans,EEG_chans)
 
 %% Common Spatial Patterns
 % create a spatial filter using available EEG & labels
-% begin by splitting into two classes:
-leftClass = MIData(targetLabels == 2,:,:);
-rightClass = MIData(targetLabels == 3,:,:);
-% aggregate all trials into one matrix
+% we will "train" a mixing matrix (wTrain) on 80% of the trials and another
+% mixing matrix (wViz) just for the visualization trial (vizTrial). This
+% serves to show an understandable demonstration of the process.
+
+% Begin by splitting into two classes:
+leftClass = MIData(targetLabels == 1,:,:);
+rightClass = MIData(targetLabels == 2,:,:);
+
+% Aggregate all trials into one matrix
 overallLeft = [];
 overallRight = [];
-for trial=1:size(leftClass,1)
-    overallLeft = [overallLeft squeeze(leftClass(trial,:,:))];
-    overallRight = [overallRight squeeze(rightClass(trial,:,:))];
+idleIdx = find(targetLabels == 3);                  % find idle trials
+leftIdx = find(targetLabels == 1);                  % find left trials
+rightIdx = find(targetLabels == 2);                 % find right trials
+rightIndices = rightIdx(randperm(length(rightIdx)));% randomize right indexs
+leftIndices  = leftIdx(randperm(length(leftIdx)));   % randomize left indexs
+idleIndices  = idleIdx(randperm(length(idleIdx)));   % randomize idle indexs
+minTrials = min([length(leftIndices), length(rightIndices)]);
+percentIdx = floor(0.8*minTrials);                  % this is the 80% part...
+for trial=1:percentIdx
+    overallLeft = [overallLeft squeeze(MIData(leftIndices(trial),:,:))];
+    overallRight = [overallRight squeeze(MIData(rightIndices(trial),:,:))];
 end
-vizTrial = 11;       % cherry-picked!
+vizTrial = 5;       % cherry-picked!
+% visualize the CSP data:
 figure;
 subplot(1,2,1)      % show a single trial before CSP seperation
 scatter3(squeeze(leftClass(vizTrial,1,:)),squeeze(leftClass(vizTrial,2,:)),squeeze(leftClass(vizTrial,3,:)),'b'); hold on
@@ -96,14 +113,15 @@ legend('Left','Right')
 xlabel('channel 1')
 ylabel('channel 2')
 zlabel('channel 3')
-% find mixing matrix (W) for all trials
-[W, lambda, A] = csp(overallLeft, overallRight);
-[Wviz, lambdaViz, Aviz] = csp(squeeze(rightClass(vizTrial,:,:)), squeeze(leftClass(vizTrial,:,:)));
+% find mixing matrix (wAll) for all trials:
+[wTrain, lambda, A] = csp(overallLeft, overallRight);
+% find mixing matrix (wViz) just for visualization trial:
+[wViz, lambdaViz, Aviz] = csp(squeeze(rightClass(vizTrial,:,:)), squeeze(leftClass(vizTrial,:,:)));
 % apply mixing matrix on available data (for visualization)
-leftClassCSP = (Wviz'*squeeze(leftClass(vizTrial,:,:)));
-rightClassCSP = (Wviz'*squeeze(rightClass(vizTrial,:,:)));
+leftClassCSP = (wViz'*squeeze(leftClass(vizTrial,:,:)));
+rightClassCSP = (wViz'*squeeze(rightClass(vizTrial,:,:)));
 
-subplot(1,2,2)      % show a single trial aftler CSP seperation
+subplot(1,2,2)      % show a single trial after CSP seperation
 scatter3(squeeze(leftClassCSP(1,:)),squeeze(leftClassCSP(2,:)),squeeze(leftClassCSP(3,:)),'b'); hold on
 scatter3(squeeze(rightClassCSP(1,:)),squeeze(rightClassCSP(2,:)),squeeze(rightClassCSP(3,:)),'g');
 title('After CSP')
@@ -116,27 +134,29 @@ clear leftClassCSP rightClassCSP Wviz lambdaViz Aviz
 
 %% Spectral frequencies and times for bandpower features:
 % frequency bands
-bands{1} = [15.5,18.5];
-bands{2} = [8,10.5];
-bands{3} = [10,15.5];
-bands{4} = [17.5,20.5];
-bands{5} = [12.5,30];
+% informative
+bands{1} = [20,40];
+bands{2} = [20,40];
+bands{3} = [20,40];
+bands{4} = [20,40];
+bands{5} = [18.5,40];
     
 % times of frequency band features
-times{1} = (1*Fs : 3*Fs);
-times{2} = (3*Fs : 4.5*Fs);
-times{3} = (4.25*Fs : size(MIData,3));
-times{4} = (2*Fs : 2.75*Fs);
-times{5} = (2.5*Fs : 4*Fs);
+times{1} = round((2.2*Fs : 2.9*Fs));
+times{2} = round((3.2*Fs : 3.9*Fs));
+times{3} = round((0.3*Fs : 0.5*Fs));
+times{4} = (1.2*Fs : 1.6*Fs);
+times{5} = round((4.3*Fs : size(MIData,3)));
 
 numSpectralFeatures = length(bands);                        % how many features exist overall 
 
 %% Extract features 
 MIFeaturesLabel = NaN(trials,numChans,numSpectralFeatures); % init features + labels matrix
+MIFeaturesName = cell(trials,numChans,numSpectralFeatures); % names of features
 for trial = 1:trials                                % run over all the trials
     
     % CSP: using W computed above for all channels at once
-    temp = var((W'*squeeze(MIData(trial,:,:)))');   % apply the CSP filter on the current trial EEG data
+    temp = var((wTrain'*squeeze(MIData(trial,:,:)))');   % apply the CSP filter on the current trial EEG data
     CSPFeatures(trial,:) = temp(1:3);               % add the variance from the first 3 eigenvalues
     clear temp                                      % clear the variable to free it for the next loop
     
@@ -145,6 +165,8 @@ for trial = 1:trials                                % run over all the trials
         for feature = 1:numSpectralFeatures                 % run over all spectral band power features from the section above
             % Extract features: bandpower +-1 Hz around each target frequency
             MIFeaturesLabel(trial,channel,n) = bandpower(squeeze(MIData(trial,channel,times{feature})),Fs,bands{feature});
+            MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': bandpower ' num2str(bands{feature}(1)) '-' num2str(bands{feature}(2)) ' Hz ' ...
+                num2str(round(times{feature}(1)/Fs)) ':' num2str(round(times{feature}(end)/Fs)) ' min'];
             n = n+1;            
         end
         disp(strcat('Extracted Powerbands from electrode:',EEG_chans(channel,:)))
@@ -160,12 +182,14 @@ for trial = 1:trials                                % run over all the trials
         
         % Root Total Power
         MIFeaturesLabel(trial,channel,n) = sqrt(pfTot);     % Square-root of the total power
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': square-root of total power'];
         n = n + 1;
         disp(strcat('Extracted Root Total Power from electrode:',EEG_chans(channel,:)))
         
         
         % Spectral Moment
         MIFeaturesLabel(trial,channel,n) = sum(normlizedMatrix.*f'); % Calculate the spectral moment
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': spectral moment'];
         n = n + 1;
         disp(strcat('Extracted Normalized Pwelch Matrix from electrode:',EEG_chans(channel,:)))
         
@@ -180,12 +204,14 @@ for trial = 1:trials                                % run over all the trials
         % apply function to each element of normlizedMatrix
         fun4length = cell2mat(arrayfun(lengthfunc, 1:size(normlizedMatrix',1), 'un',0));
         MIFeaturesLabel(trial,channel,n) = f(fun4length);   % Insert it to the featurs matrix
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': spectral edge'];
         n = n + 1;
         disp(strcat('Extracted Spectral Edge from electrode:',EEG_chans(channel,:)))
         
         
         % Spectral Entropy
         MIFeaturesLabel(trial,channel,n) = -sum(normlizedMatrix.*log2(normlizedMatrix)); % calculate the spectral entropy
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': spectral entropy'];
         n = n + 1;
         disp(strcat('Extracted Spectral Entropy from electrode:',EEG_chans(channel,:)))
         
@@ -199,6 +225,7 @@ for trial = 1:trials                                % run over all the trials
         % Apply function to each element of tansposeMat
         pFitLiner = cell2mat(arrayfun(FitFH, 1:size(transposeMat,1), 'un',0));
         MIFeaturesLabel(trial,channel,n)=pFitLiner(1:2 :length(pFitLiner));
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': slope'];
         n = n + 1;
         disp(strcat('Extracted Slope from electrode:',EEG_chans(channel,:)))
         
@@ -206,6 +233,7 @@ for trial = 1:trials                                % run over all the trials
         % Intercept
         % the slope is in each double value in the matrix
         MIFeaturesLabel(trial,channel,n)=pFitLiner(2:2:length(pFitLiner));
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': intercept'];
         n= n + 1;
         disp(strcat('Extracted Intercept from electrode:',EEG_chans(channel,:)))
         
@@ -214,6 +242,7 @@ for trial = 1:trials                                % run over all the trials
         % returns the mean frequency of a power spectral density (PSD) estimate, pxx.
         % The frequencies, f, correspond to the estimates in pxx.
         MIFeaturesLabel(trial,channel,n) = meanfreq(normlizedMatrix,f);
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': mean frequency'];
         n = n + 1;
         disp(strcat('Extracted Mean Frequency from electrode:',EEG_chans(channel,:)))
         
@@ -222,12 +251,14 @@ for trial = 1:trials                                % run over all the trials
         % returns the 99% occupied bandwidth of the power spectral density (PSD) estimate, pxx.
         % The frequencies, f, correspond to the estimates in pxx.
         MIFeaturesLabel(trial,channel,n) = obw(normlizedMatrix,f);
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': occupied bandwidth'];
         n = n + 1;
         disp(strcat('Extracted Occupied bandwidth from electrode:',EEG_chans(channel,:)))
         
         
         % Power bandwidth
         MIFeaturesLabel(trial,channel,n) = powerbw(normlizedMatrix,Fs);
+        MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': power bandwidth'];
         n = n + 1;
         disp(strcat('Extracted Power bandwidth from electrode:',EEG_chans(channel,:)))
         
@@ -239,15 +270,18 @@ MIFeaturesLabel = zscore(MIFeaturesLabel);
 
 % Reshape into 2-D matrix
 MIFeatures = reshape(MIFeaturesLabel,trials,[]);
+MIFeaturesName2D = reshape(MIFeaturesName, trials, []);
 MIFeatures = [CSPFeatures MIFeatures];              % add the CSP features to the overall matrix
+MIFeaturesName2D = [repmat({'CSP1'},1,size(MIFeaturesName2D,1))'...
+                    repmat({'CSP2'},1,size(MIFeaturesName2D,1))'...
+                    repmat({'CSP3'},1,size(MIFeaturesName2D,1))'...
+                    MIFeaturesName2D];
+                    
+
 AllDataInFeatures = MIFeatures;
 save(strcat(recordingFolder,'\AllDataInFeatures.mat'),'AllDataInFeatures');
 
 %% Split to training and test sets
-
-idleIdx = find(targetLabels == 1);                                  % find idle trials
-leftIdx = find(targetLabels == 2);                                  % find left trials
-rightIdx = find(targetLabels == 3);                                 % find right trials
 
 testIdx = randperm(length(idleIdx),num4test);                       % picking test index randomly
 testIdx = [idleIdx(testIdx) leftIdx(testIdx) rightIdx(testIdx)];    % taking the test index from each class
@@ -269,6 +303,10 @@ class = fscnca(FeaturesTrain,LabelTrain);   % feature selection
 [~,selected] = sort(class.FeatureWeights,'descend');
 % taking only the specified number of features with the largest weights
 SelectedIdx = selected(1:Features2Select);
+disp('Features selected:');
+for ii = 1:length(SelectedIdx)
+    disp(MIFeaturesName2D{1,SelectedIdx(ii)});
+end
 FeaturesTrainSelected = FeaturesTrain(:,SelectedIdx);       % updating the matrix feature
 FeaturesTest = FeaturesTest(:,SelectedIdx);                 % updating the matrix feature
 % saving
