@@ -21,11 +21,14 @@ addpath 'C:\Toolboxes\EEGLAB'               % update to your own computer path
 eeglab;                                     % open EEGLAB 
 highLim = 40;                               % filter data under 40 Hz
 lowLim = 0.5;                               % filter data above 0.5 Hz
-recordingFile = strcat(recordingFolder,'\EEG.XDF');
+recordingFile = strcat(recordingFolder,'\Week_6_recording_trainingVec-Shir.XDF');
 
 % (1) Load subject data (assume XDF)
 EEG = pop_loadxdf(recordingFile, 'streamtype', 'EEG', 'exclude_markerstreams', {});
 EEG.setname = 'MI_sub';
+
+EEG.data = EEG.data(1:11, :);
+EEG.nbchan = 11;
 
 % (2) Update channel names - each group should update this according to
 % their own openBCI setup.
@@ -81,14 +84,15 @@ legend(EEG_chans);
 title('Raw data')
 
 %% (3) Low-pass filter
-EEG = pop_eegfiltnew(EEG, 'hicutoff',highLim,'plotfreqz',1);    % remove data above
+% [spectra,freqs] = spectopo(EEG.data(1,:),0,EEG.srate,lowLim:1:highLim,EEG_chans);
+EEG = pop_eegfiltnew(EEG, 'hicutoff',highLim,'plotfreqz',0);    % remove data above
 EEG = eeg_checkset( EEG );
 figure;
 [spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');%, limits,title,freqfaq, percent);
 title('Low pass filter')
 legend(EEG_chans);
 % (3) High-pass filter
-EEG = pop_eegfiltnew(EEG, 'locutoff',lowLim,'plotfreqz',1);     % remove data under
+EEG = pop_eegfiltnew(EEG, 'locutoff',lowLim,'plotfreqz',0);     % remove data under
 EEG = eeg_checkset( EEG );
 figure;
 [spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');%, limits,title,freqfaq, percent);
@@ -113,11 +117,21 @@ eegplot(EEG.data)
 %%%%%%% (5) Add advanced artifact removal functions %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% eegplot(EEG.data)
+% [spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');
+
+EEG.data(1,:) = EEG.data(1,:) -  mean(EEG.data(4:2:10,:), 1);
+EEG.data(2,:) = EEG.data(2,:) -  mean(EEG.data(5:2:11,:), 1);
+
+
 % Save the data into .mat variables on the computer
 EEG_data = EEG.data;            % Pre-processed EEG data
 EEG_event = EEG.event;          % Saved markers for sorting the data
-save(strcat(recordingFolder,'\','cleaned_sub.mat'),'EEG_data');
-save(strcat(recordingFolder,'\','EEG_events.mat'),'EEG_event');
-save(strcat(recordingFolder,'\','EEG_chans.mat'),'EEG_chans');
-                
+save(strcat(recordingFolder,'/','cleaned_sub.mat'),'EEG_data');
+save(strcat(recordingFolder,'/','EEG_events.mat'),'EEG_event');
+save(strcat(recordingFolder,'/','EEG_chans.mat'),'EEG_chans');
+
+% EEG = pop_runica(EEG)
+% EEG3 = pop_topoplot(EEG2, EEG_chans)
+
 end
