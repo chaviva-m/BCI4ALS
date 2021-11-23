@@ -17,7 +17,7 @@ function [] = MI2_preprocess(recordingFolder)
 % so on - but please cite properly if published.
 
 %% Some parameters (this needs to change according to your system):
-addpath 'C:\Toolboxes\eeglab2020_0'           % update to your own computer path
+addpath 'C:\Toolboxes\EEGLAB'               % update to your own computer path
 eeglab;                                     % open EEGLAB 
 highLim = 40;                               % filter data under 40 Hz
 lowLim = 0.5;                               % filter data above 0.5 Hz
@@ -31,30 +31,83 @@ EEG.setname = 'MI_sub';
 % their own openBCI setup.
 EEG_chans(1,:) = 'C03';
 EEG_chans(2,:) = 'C04';
-EEG_chans(3,:) = 'P07';
-EEG_chans(4,:) = 'P08';
-EEG_chans(5,:) = 'O01';
-EEG_chans(6,:) = 'O02';
-EEG_chans(7,:) = 'F07';
-EEG_chans(8,:) = 'F08';
-EEG_chans(9,:) = 'F03';
-EEG_chans(10,:) = 'F04';
-EEG_chans(11,:) = 'T07';
-EEG_chans(12,:) = 'T08';
-EEG_chans(13,:) = 'P03';
-EEG_chans(14,:) = 'P03';
-EEG_chans(15,:) = 'P03';
-EEG_chans(16,:) = 'P03';
+EEG_chans(3,:) = 'C0Z';
+EEG_chans(4,:) = 'FC1';
+EEG_chans(5,:) = 'FC2';
+EEG_chans(6,:) = 'FC5';
+EEG_chans(7,:) = 'FC6';
+EEG_chans(8,:) = 'CP1';
+EEG_chans(9,:) = 'CP2';
+EEG_chans(10,:) = 'CP5';
+EEG_chans(11,:) = 'CP6';
+
+EEG.data = EEG.data(1:size(EEG_chans,1),:); 
+EEG.nbchan = size(EEG_chans,1);
+
+%% Plot raw data - my code
+figure; hold on;
+[~, exp_timeS] = min(abs(EEG.times - EEG.event(2).latency));
+[~, exp_timeL] = min(abs(EEG.times - EEG.event(end-1).latency));
+EEG_time_exp = EEG.times(exp_timeS:exp_timeL)-EEG.times(exp_timeS);
+time_min = EEG_time_exp./(EEG.srate*60);
+for ii = 1:size(EEG_chans,1)    
+%     data_centered = EEG.data(ii,exp_timeS:exp_timeL) - mean(EEG.data(ii,exp_timeS:exp_timeL));
+    plot(time_min, EEG.data(ii,exp_timeS:exp_timeL));   
+end
+xlabel('Time (min)')
+xlim([time_min(1) time_min(end)])
+markers = cellfun(@str2num, extractfield(EEG.event, 'type'), 'UniformOutput', false); 
+markers = cell2mat(markers);
+latencies = extractfield(EEG.event, 'latency');
+markerIds = [1001, 3, 1, 2];
+markerNames = {'BL', 'Idle', 'Left', 'Right'};
+colors = {'k', 'r', 'b', 'm'};
+h = []; hL = [];
+for mm = 1:length(markerIds)
+    markerIdx = markers == markerIds(mm);
+    markerLat = latencies(markerIdx);
+    markerIdxTime = arrayfun(@(x) find(abs(EEG_time_exp - x) == min(abs(EEG_time_exp - x))), markerLat, 'UniformOutput', false);
+    markerIdxTime = cell2mat(markerIdxTime);
+    h{end+1} = arrayfun(@(a)xline(a, colors{mm}, 'DisplayName', markerNames{mm}),EEG_time_exp(markerIdxTime)./(EEG.srate*60)); 
+    hL(end+1) = h{end}(1);
+end
+legend(hL);
+%% Plot raw data
+eegplot(EEG.data)
+%% PSD 
+figure;
+[spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');
+legend(EEG_chans);
+title('Raw data')
 
 %% (3) Low-pass filter
 EEG = pop_eegfiltnew(EEG, 'hicutoff',highLim,'plotfreqz',1);    % remove data above
 EEG = eeg_checkset( EEG );
+figure;
+[spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');%, limits,title,freqfaq, percent);
+title('Low pass filter')
+legend(EEG_chans);
 % (3) High-pass filter
 EEG = pop_eegfiltnew(EEG, 'locutoff',lowLim,'plotfreqz',1);     % remove data under
 EEG = eeg_checkset( EEG );
+figure;
+[spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');%, limits,title,freqfaq, percent);
+title('High pass filter')
+legend(EEG_chans);
+
 % (4) Notch filter - this uses the ERPLAB filter
-EEG  = pop_basicfilter( EEG,  1:15 , 'Boundary', 'boundary', 'Cutoff',  50, 'Design', 'notch', 'Filter', 'PMnotch', 'Order',  180 );
+EEG  = pop_basicfilter( EEG,  1:EEG.nbchan, 'Boundary', 'boundary', 'Cutoff',  50, 'Design', 'notch', 'Filter', 'PMnotch', 'Order',  180 );
 EEG = eeg_checkset( EEG );
+figure;
+[spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');%, limits,title,freqfaq, percent);
+title('Notch filter')
+legend(EEG_chans);
+
+%% LaPlacian spatial filter around C3 and C4
+eegplot(EEG.data)
+% EEG.data(1,:) = EEG.data(1,:) -  mean(EEG.data(4:2:10,:), 1);
+% EEG.data(2,:) = EEG.data(2,:) -  mean(EEG.data(5:2:11,:), 1);
+eegplot(EEG.data)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% (5) Add advanced artifact removal functions %%%%%%%%%%%%%%%%%%%%%

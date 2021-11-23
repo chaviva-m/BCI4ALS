@@ -90,10 +90,9 @@ text(0.5,0.5 ,...                               % important for people to prepar
     ['System is calibrating.' newline 'The training session will begin shortly.'], ...
     'HorizontalAlignment', 'Center', 'Color', 'white', 'FontSize', 40);
 pause(InitWait)
-cla
+
 for trial = 1:totalTrials
-    outletStream.push_sample(startTrial);       % trial trigger & counter
-    startTrial = startTrial + trial;    
+    outletStream.push_sample(startTrial);       % trial trigger & counter    
     currentClass = trainingVec(trial);          % What class is it?
     
     % Cue before ready
