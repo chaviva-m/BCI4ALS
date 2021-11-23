@@ -10,11 +10,11 @@ function [test_results] = MI5_modelTraining(recordingFolder)
 
 %% Read the features & labels 
 
-FeaturesTrain = cell2mat(struct2cell(load(strcat(recordingFolder,'\FeaturesSelected.mat'))));   % features for train set
-LabelTrain = cell2mat(struct2cell(load(strcat(recordingFolder,'\LabelTrain'))));                % label vector for train set
+FeaturesTrain = cell2mat(struct2cell(load(strcat(recordingFolder,'\FeaturesTrainSelected.mat'))));   % features for train set
+LabelTrain = cell2mat(struct2cell(load(strcat(recordingFolder,'\LabelTrain.mat'))));                % label vector for train set
 
 % label vector
-LabelTest = cell2mat(struct2cell(load(strcat(recordingFolder,'\LabelTest'))));      % label vector for test set
+LabelTest = cell2mat(struct2cell(load(strcat(recordingFolder,'\LabelTest.mat'))));      % label vector for test set
 load(strcat(recordingFolder,'\FeaturesTest.mat'));                                  % features for test set
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,8 +22,21 @@ load(strcat(recordingFolder,'\FeaturesTest.mat'));                              
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% test data
-testPrediction = classify(FeaturesTest,FeaturesTrain,LabelTrain,'linear');          % classify the test set using a linear classification object (built-in Matlab functionality)
-W = LDA(FeaturesTrain,LabelTrain);                                                  % train a linear discriminant analysis weight vector (first column is the constants)
+FeaturesTrain = [FeaturesTrain LabelTrain'];
+s = 10;
+
+for c = 1:s
+    
+    [m,n] = size(FeaturesTrain) ;
+    P = 0.70 ;
+    idx = randperm(m)  ;
+    Training = FeaturesTrain(idx(1:round(P*m)),:) ; 
+    Validation = FeaturesTrain(idx(round(P*m)+1:end),:) ;
+    
+    testPrediction = classify(FeaturesTest,FeaturesTrain,LabelTrain,'linear');          % classify the test set using a linear classification object (built-in Matlab functionality)
+    W = LDA(FeaturesTrain,LabelTrain); 
+end
+                                                 % train a linear discriminant analysis weight vector (first column is the constants)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%% Add your own classifier %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
