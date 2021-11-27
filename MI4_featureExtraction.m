@@ -76,6 +76,20 @@ mySpectrogram(t,spectFreq,totalSpect,numClasses,vizChans,EEG_chans)
 %%%%%% Add your own data visualization here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+idleIdx = find(targetLabels == 3);                  % find idle trials
+leftIdx = find(targetLabels == 1);                  % find left trials
+rightIdx = find(targetLabels == 2);                 % find right trials
+
+% visualize voltage as a function of time
+for channel = vizChans
+    figure; hold on;
+    title(EEG_chans(channel,:))
+    for trial = 1:trials
+        if any(trial==leftIdx), c='b'; elseif any(trial==rightIdx), c='r'; else, c='g';end
+        plot(squeeze(MIData(trial,channel,:)), 'color', c);
+    end
+end
+
 
 %% Common Spatial Patterns
 % create a spatial filter using available EEG & labels
@@ -90,9 +104,6 @@ rightClass = MIData(targetLabels == 2,:,:);
 % Aggregate all trials into one matrix
 overallLeft = [];
 overallRight = [];
-idleIdx = find(targetLabels == 3);                  % find idle trials
-leftIdx = find(targetLabels == 1);                  % find left trials
-rightIdx = find(targetLabels == 2);                 % find right trials
 rightIndices = rightIdx(randperm(length(rightIdx)));% randomize right indexs
 leftIndices  = leftIdx(randperm(length(leftIdx)));   % randomize left indexs
 idleIndices  = idleIdx(randperm(length(idleIdx)));   % randomize idle indexs
@@ -135,18 +146,18 @@ clear leftClassCSP rightClassCSP Wviz lambdaViz Aviz
 %% Spectral frequencies and times for bandpower features:
 % frequency bands
 % informative
-bands{1} = [20,40];
-bands{2} = [20,40];
-bands{3} = [20,40];
-bands{4} = [20,40];
-bands{5} = [18.5,40];
+bands{1} = [10,30]; % right
+bands{2} = [10,16]; % right
+bands{3} = [18,30]; % left
+bands{4} = [20,30]; % left
+bands{5} = [18,30]; % idle
     
 % times of frequency band features
-times{1} = round((2.2*Fs : 2.9*Fs));
-times{2} = round((3.2*Fs : 3.9*Fs));
-times{3} = round((0.3*Fs : 0.5*Fs));
-times{4} = (1.2*Fs : 1.6*Fs);
-times{5} = round((4.3*Fs : size(MIData,3)));
+times{1} = round((0.32*Fs : 0.48*Fs));  % right class
+times{2} = round((1.28*Fs : 1.44*Fs));  % right class
+times{3} = round((2.4*Fs : 2.56*Fs));   % left class
+times{4} = round((3.36*Fs : 3.52*Fs));  % left class
+times{5} = round((4.32*Fs : 4.48*Fs));  % idle
 
 numSpectralFeatures = length(bands);                        % how many features exist overall 
 
@@ -166,7 +177,7 @@ for trial = 1:trials                                % run over all the trials
             % Extract features: bandpower +-1 Hz around each target frequency
             MIFeaturesLabel(trial,channel,n) = bandpower(squeeze(MIData(trial,channel,times{feature})),Fs,bands{feature});
             MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': bandpower ' num2str(bands{feature}(1)) '-' num2str(bands{feature}(2)) ' Hz ' ...
-                num2str(round(times{feature}(1)/Fs)) ':' num2str(round(times{feature}(end)/Fs)) ' min'];
+                num2str(times{feature}(1)/Fs) ':' num2str(times{feature}(end)/Fs) ' min'];
             n = n+1;            
         end
         disp(strcat('Extracted Powerbands from electrode:',EEG_chans(channel,:)))
@@ -261,9 +272,11 @@ for trial = 1:trials                                % run over all the trials
         MIFeaturesName{trial,channel,n} = [EEG_chans(channel,:) ': power bandwidth'];
         n = n + 1;
         disp(strcat('Extracted Power bandwidth from electrode:',EEG_chans(channel,:)))
-        
+               
     end
 end
+
+
 
 % z-score all the features
 MIFeaturesLabel = zscore(MIFeaturesLabel);
