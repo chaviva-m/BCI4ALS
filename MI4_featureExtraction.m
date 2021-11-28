@@ -133,13 +133,13 @@ leftClassCSP = (wViz'*squeeze(leftClass(vizTrial,:,:)));
 rightClassCSP = (wViz'*squeeze(rightClass(vizTrial,:,:)));
 
 subplot(1,2,2)      % show a single trial after CSP seperation
-scatter3(squeeze(leftClassCSP(1,:)),squeeze(leftClassCSP(2,:)),squeeze(leftClassCSP(3,:)),'b'); hold on
-scatter3(squeeze(rightClassCSP(1,:)),squeeze(rightClassCSP(2,:)),squeeze(rightClassCSP(3,:)),'g');
+scatter3(squeeze(leftClassCSP(1,:)),squeeze(leftClassCSP(2,:)),squeeze(leftClassCSP(11,:)),'b'); hold on
+scatter3(squeeze(rightClassCSP(1,:)),squeeze(rightClassCSP(2,:)),squeeze(rightClassCSP(11,:)),'g');
 title('After CSP')
 legend('Left','Right')
 xlabel('CSP dimension 1')
 ylabel('CSP dimension 2')
-zlabel('CSP dimension 3')
+zlabel('CSP dimension 11')
 
 clear leftClassCSP rightClassCSP Wviz lambdaViz Aviz
 

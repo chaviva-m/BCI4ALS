@@ -112,7 +112,7 @@ EEG = pop_clean_rawdata(EEG, 'FlatlineCriterion','off','ChannelCriterion','off',
 %% ICA
 EEG = pop_runica(EEG, 'icatype', 'runica', 'extended',1,'interrupt','on');
 % add channel locations
-chanlocfile = 'C:\\Users\\chubb\\Documents\\BCI4ALS\\montage_ultracortex.ced'; % change this to path on computer
+chanlocfile = '.\\montage_ultracortex.ced'; % change this to path on computer
 standard_1005_path = 'C:\\Toolboxes\\EEGLAB\\plugins\\dipfit\\standard_BEM\\elec\\standard_1005.elc'; % change this to path on computer
 EEG=pop_chanedit(EEG, 'lookup',standard_1005_path,'load',{chanlocfile,'filetype','autodetect'});
 EEG=pop_chanedit(EEG, 'lookup','C:\\Toolboxes\\EEGLAB\\plugins\\dipfit\\standard_BEM\\elec\\standard_1005.elc');
@@ -123,7 +123,7 @@ brain_label = find(strcmp(EEG.etc.ic_classification.ICLabel.classes, 'Brain'));
 non_brain_components = find(EEG.etc.ic_classification.ICLabel.classifications(:,brain_label) < 0.5);
 % remove these components
 components_to_remove = [non_brain_components];
-EEG = pop_subcomp( EEG, components_to_remove, 0);
+% EEG = pop_subcomp( EEG, components_to_remove, 0);
 
 %% LaPlacian spatial filter around C3 and C4
 eegplot(EEG.data)
