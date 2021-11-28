@@ -115,12 +115,12 @@ EEG = pop_runica(EEG, 'icatype', 'runica', 'extended',1,'interrupt','on');
 chanlocfile = '.\\montage_ultracortex.ced'; % change this to path on computer
 standard_1005_path = 'C:\\Toolboxes\\EEGLAB\\plugins\\dipfit\\standard_BEM\\elec\\standard_1005.elc'; % change this to path on computer
 EEG=pop_chanedit(EEG, 'lookup',standard_1005_path,'load',{chanlocfile,'filetype','autodetect'});
-EEG=pop_chanedit(EEG, 'lookup','C:\\Toolboxes\\EEGLAB\\plugins\\dipfit\\standard_BEM\\elec\\standard_1005.elc');
+EEG=pop_chanedit(EEG, 'lookup',standard_1005_path);
 % add ICA labels
 EEG = pop_iclabel(EEG, 'default');
 % find components that are less than 50% brain activity
 brain_label = find(strcmp(EEG.etc.ic_classification.ICLabel.classes, 'Brain'));
-non_brain_components = find(EEG.etc.ic_classification.ICLabel.classifications(:,brain_label) < 0.5);
+non_brain_components = find(EEG.etc.ic_classification.ICLabel.classifications(:,brain_label) < 0.4);
 % remove these components
 components_to_remove = [non_brain_components];
 % EEG = pop_subcomp( EEG, components_to_remove, 0);

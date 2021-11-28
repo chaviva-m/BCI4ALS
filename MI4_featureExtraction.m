@@ -123,11 +123,12 @@ title('Before CSP')
 legend('Left','Right')
 xlabel('channel 1')
 ylabel('channel 2')
-zlabel('channel 3')
+zlabel('channel 11')
 % find mixing matrix (wAll) for all trials:
 [wTrain, lambda, A] = csp(overallLeft, overallRight);
+
 % find mixing matrix (wViz) just for visualization trial:
-[wViz, lambdaViz, Aviz] = csp(squeeze(rightClass(vizTrial,:,:)), squeeze(leftClass(vizTrial,:,:)));
+[wViz, lambdaViz, Aviz] = csp(squeeze(leftClass(vizTrial,:,:)), squeeze(rightClass(vizTrial,:,:)));
 % apply mixing matrix on available data (for visualization)
 leftClassCSP = (wViz'*squeeze(leftClass(vizTrial,:,:)));
 rightClassCSP = (wViz'*squeeze(rightClass(vizTrial,:,:)));
@@ -168,7 +169,8 @@ for trial = 1:trials                                % run over all the trials
     
     % CSP: using W computed above for all channels at once
     temp = var((wTrain'*squeeze(MIData(trial,:,:)))');   % apply the CSP filter on the current trial EEG data
-    CSPFeatures(trial,:) = temp(1:3);               % add the variance from the first 3 eigenvalues
+%     CSPFeatures(trial,:) = temp(1:3);               % add the variance from the first 3 eigenvalues
+    CSPFeatures(trial,:) = temp([1,2,11]);               % add the variance from the first 3 eigenvalues
     clear temp                                      % clear the variable to free it for the next loop
     
     for channel = 1:numChans                        % run over all the electrodes (channels)
@@ -287,7 +289,7 @@ MIFeaturesName2D = reshape(MIFeaturesName, trials, []);
 MIFeatures = [CSPFeatures MIFeatures];              % add the CSP features to the overall matrix
 MIFeaturesName2D = [repmat({'CSP1'},1,size(MIFeaturesName2D,1))'...
                     repmat({'CSP2'},1,size(MIFeaturesName2D,1))'...
-                    repmat({'CSP3'},1,size(MIFeaturesName2D,1))'...
+                    repmat({'CSP11'},1,size(MIFeaturesName2D,1))'...
                     MIFeaturesName2D];
                     
 
