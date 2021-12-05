@@ -23,7 +23,7 @@ FeaturesTest = cell2mat(struct2cell(load(strcat(recordingFolder,'\FeaturesTest.m
 
 %% test data
 %FeaturesTrain = [FeaturesTrain LabelTrain'];
-rounds = 10;
+rounds = 50;
 P = 0.70 ;
 
 valAccuracy = zeros(1,rounds);
@@ -38,7 +38,8 @@ for c = 1:rounds
 
     %testPrediction = classify(FeaturesTest,FeaturesTrain,LabelTrain,'linear');          % classify the test set using a linear classification object (built-in Matlab functionality)
 %     W = LDA(Training,LabelTraining); 
-    Mdl = fitcecoc(Training,LabelTraining);
+    t = templateSVM('Standardize',true, 'BoxConstraint', 1, 'Kernelfunction', 'linear', 'Solver', 'SMO');
+    Mdl = fitcecoc(Training,LabelTraining, 'Learner', t, 'Coding', 'onevsone');
     yPred = predict(Mdl, Validation);
     valAccuracy(c) = sum(yPred == LabelValidation)/length(LabelValidation);
 end
