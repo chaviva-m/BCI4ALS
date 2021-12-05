@@ -104,6 +104,9 @@ rightClass = MIData(targetLabels == 2,:,:);
 % Aggregate all trials into one matrix
 overallLeft = [];
 overallRight = [];
+idleIdx = find(targetLabels == 3);                  % find idle trials
+leftIdx = find(targetLabels == 1);                  % find left trials
+rightIdx = find(targetLabels == 2);                 % find right trials
 rightIndices = rightIdx(randperm(length(rightIdx)));% randomize right indexs
 leftIndices  = leftIdx(randperm(length(leftIdx)));   % randomize left indexs
 idleIndices  = idleIdx(randperm(length(idleIdx)));   % randomize idle indexs
@@ -129,7 +132,7 @@ zlabel('channel 11')
 
 % find mixing matrix (wViz) just for visualization trial:
 [wViz, lambdaViz, Aviz] = csp(squeeze(leftClass(vizTrial,:,:)), squeeze(rightClass(vizTrial,:,:)));
-% apply mixing matrix on available data (for visualization)
+rightClassCSP = (wViz'*squeeze(rightClass(vizTrial,:,:)));
 leftClassCSP = (wViz'*squeeze(leftClass(vizTrial,:,:)));
 rightClassCSP = (wViz'*squeeze(rightClass(vizTrial,:,:)));
 
@@ -295,8 +298,6 @@ MIFeaturesName2D = [repmat({'CSP1'},1,size(MIFeaturesName2D,1))'...
 
 AllDataInFeatures = MIFeatures;
 save(strcat(recordingFolder,'\AllDataInFeatures.mat'),'AllDataInFeatures');
-
-%% Split to training and test sets
 
 testIdx = randperm(length(idleIdx),num4test);                       % picking test index randomly
 testIdx = [idleIdx(testIdx) leftIdx(testIdx) rightIdx(testIdx)];    % taking the test index from each class

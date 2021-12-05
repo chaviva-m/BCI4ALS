@@ -18,10 +18,15 @@ function [] = MI2_preprocess(recordingFolder)
 
 %% Some parameters (this needs to change according to your system):
 addpath 'C:\Toolboxes\EEGLAB'               % update to your own computer path
+addpath("C:\Users\nitai seri\Desktop\study\university\year3\BCI\eeglab2021.1\plugins\erplab8.20\erplab8.20\pop_functions")
+addpath(genpath('C:\Users\nitai seri\Desktop\study\university\year3\BCI\liblsl-Matlab-1.14.0-Win_amd64_R2020b\liblsl-Matlab'));
+addpath(genpath('C:\Users\nitai seri\Desktop\study\university\year3\BCI\eeglab2021.1'))
+
+
 eeglab;                                     % open EEGLAB 
 highLim = 40;                               % filter data under 40 Hz
 lowLim = 0.5;                               % filter data above 0.5 Hz
-recordingFile = strcat(recordingFolder,'\EEG.xdf');
+recordingFile = strcat(recordingFolder,'\EEG.XDF');
 
 % (1) Load subject data (assume XDF)
 EEG = pop_loadxdf(recordingFile, 'streamtype', 'EEG', 'exclude_markerstreams', {});
@@ -29,6 +34,7 @@ EEG.setname = 'MI_sub';
 
 EEG.data = EEG.data(1:11, :);
 EEG.nbchan = 11;
+
 
 % (2) Update channel names - each group should update this according to
 % their own openBCI setup.
@@ -134,6 +140,11 @@ eegplot(EEG.data)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%% (5) Add advanced artifact removal functions %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+eegplot(EEG.data)
+EEG.data(1,:) = EEG.data(1,:) - (EEG.data(4,:)+EEG.data(6,:)+EEG.data(8,:)+EEG.data(10,:))/4;
+EEG.data(2,:) = EEG.data(2,:) - (EEG.data(5,:)+EEG.data(7,:)+EEG.data(9,:)+EEG.data(11,:))/4;
+eegplot(EEG.data)
+
 
 % eegplot(EEG.data)
 % [spectra,freqs] = spectopo(EEG.data,0,EEG.srate,'percent', 50,'freqrange',[0, 60],'electrodes','off');
