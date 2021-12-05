@@ -26,6 +26,7 @@ FeaturesTest = cell2mat(struct2cell(load(strcat(recordingFolder,'\FeaturesTest.m
 rounds = 10;
 P = 0.70 ;
 
+valAccuracy = zeros(1,rounds);
 for c = 1:rounds
     
     [samples,features_num] = size(FeaturesTrain) ;
@@ -36,8 +37,13 @@ for c = 1:rounds
     LabelValidation = LabelTrain(idx(round(P*samples)+1:end),:) ;
 
     %testPrediction = classify(FeaturesTest,FeaturesTrain,LabelTrain,'linear');          % classify the test set using a linear classification object (built-in Matlab functionality)
-    W = LDA(Training,LabelTrain); 
+%     W = LDA(Training,LabelTraining); 
+    Mdl = fitcecoc(Training,LabelTraining);
+    yPred = predict(Mdl, Validation);
+    valAccuracy(c) = sum(yPred == LabelValidation)/length(LabelValidation);
 end
+
+display(['Validation accuracy: ' num2str(mean(valAccuracy))]); 
                                                  % train a linear discriminant analysis weight vector (first column is the constants)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
